@@ -1,40 +1,45 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Terminal, ChevronRight, Check } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface TourStep {
     targetId: string;
     title: string;
     content: string;
+    preferredPosition?: 'top' | 'bottom' | 'left' | 'right';
 }
 
-const STEPS: TourStep[] = [
-    {
-        targetId: 'tour-parameters',
-        title: 'Векторы Ввода',
-        content: 'Здесь вы настраиваете свои финансовые параметры. Используйте слайдеры для быстрой настройки или вводите значения напрямую для прецизионной калибровки.',
-    },
-    {
-        targetId: 'tour-results',
-        title: 'Метрики Вывода',
-        content: 'Мгновенный анализ вашей траектории. Множитель показывает, во сколько раз ваши усилия (депозиты) были усилены протоколом.',
-    },
-    {
-        targetId: 'tour-chart',
-        title: 'Матрица Роста',
-        content: 'Визуализация временного эффекта сложного процента. Темные зоны — это ваши вложения; Изумрудные зоны — автономный рост капитала.',
-    },
-    {
-        targetId: 'tour-lifestyle',
-        title: 'Матрица возможностей',
-        content: 'Ваш уровень финансовой свободы. По мере роста пассивного дохода категории будут разблокироваться автоматически. Следите за прогресс-барами!',
-    }
-];
-
 export const InterfaceTour = ({ onComplete }: { onComplete: () => void }) => {
+    const { t, language } = useLanguage();
     const [currentStep, setCurrentStep] = useState(0);
     const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, height: 0 });
     const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
     const tooltipRef = useRef<HTMLDivElement>(null);
+
+    const STEPS: TourStep[] = useMemo(() => [
+        {
+            targetId: 'tour-parameters',
+            title: t.tour.steps[0].title,
+            content: t.tour.steps[0].content,
+        },
+        {
+            targetId: 'tour-results',
+            title: t.tour.steps[1].title,
+            content: t.tour.steps[1].content,
+        },
+        {
+            targetId: 'tour-chart',
+            title: t.tour.steps[2].title,
+            content: t.tour.steps[2].content,
+            preferredPosition: 'left'
+        },
+        {
+            targetId: 'tour-lifestyle',
+            title: t.tour.steps[3].title,
+            content: t.tour.steps[3].content,
+            preferredPosition: 'top'
+        }
+    ], [t, language]);
 
     const updatePosition = useCallback(() => {
         const target = document.getElementById(STEPS[currentStep].targetId);
@@ -52,58 +57,61 @@ export const InterfaceTour = ({ onComplete }: { onComplete: () => void }) => {
 
         setCoords(newCoords);
 
-        // Calculate Tooltip Position
+        // Simple Position Logic
         const tooltipWidth = 320;
-        const tooltipHeight = 280; // Estimated max height
-        const gap = 32;
+        const tooltipHeight = tooltipRef.current?.offsetHeight || 320;
+        const gap = 24;
 
-        let left: number;
+        let left = newCoords.left + (newCoords.width / 2) - (tooltipWidth / 2);
         let top: number;
 
-        // 1. Try Right Placement (if element is on the left half)
-        if (newCoords.left + newCoords.width + tooltipWidth + gap < window.innerWidth - 20) {
-            left = newCoords.left + newCoords.width + gap;
-            top = newCoords.top - 120;
-        }
-        // 2. Try Left Placement (if element is on the right half, like the chart)
-        else if (newCoords.left - tooltipWidth - gap > 20) {
+        // Step-specific forcing
+        const isStep4 = STEPS[currentStep].targetId === 'tour-lifestyle';
+        const isStep3 = STEPS[currentStep].targetId === 'tour-chart';
+
+        if (isStep4) {
+            // Force ABOVE for step 4 as requested
+            top = newCoords.top - tooltipHeight - gap;
+        } else if (isStep3) {
+            // Force LEFT for step 3 as requested before
             left = newCoords.left - tooltipWidth - gap;
-            top = newCoords.top + 40;
-        }
-        // 3. Fallback: Top/Bottom Placement
-        else {
-            left = newCoords.left + (newCoords.width / 2) - (tooltipWidth / 2);
+            top = newCoords.top;
+        } else {
+            // Default: Below
             top = newCoords.top + newCoords.height + gap;
-
-            // Vertical flip if bottom overflow
-            if (top + tooltipHeight > window.innerHeight + window.scrollY - 20) {
-                top = newCoords.top - tooltipHeight - gap;
-            }
         }
 
-        // Final boundary safety (Global)
+        // Safety: Keep horizontal in bounds
         if (left < 20) left = 20;
         if (left + tooltipWidth > window.innerWidth - 20) left = window.innerWidth - tooltipWidth - 20;
-        if (top < window.scrollY + 20) top = window.scrollY + 20;
-        if (top + tooltipHeight > document.documentElement.scrollHeight - 20) {
-            top = document.documentElement.scrollHeight - tooltipHeight - 20;
-        }
 
         setTooltipPos({ top, left });
 
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, [currentStep]);
+        // Simple Scroll Logic
+        if (isStep4) {
+            // Scroll so target is well below the top to make room for tooltip
+            const elementTop = target.getBoundingClientRect().top + window.scrollY;
+            window.scrollTo({
+                top: elementTop - tooltipHeight - 100,
+                behavior: 'smooth'
+            });
+        } else {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [currentStep, STEPS, tooltipRef]);
 
     useEffect(() => {
-        updatePosition();
-        window.addEventListener('resize', updatePosition);
-        window.addEventListener('scroll', updatePosition);
+        // Small delay to ensure the DOM is updated and tooltip height is available
+        const timer = setTimeout(() => {
+            updatePosition();
+        }, 100);
 
+        window.addEventListener('resize', updatePosition);
         return () => {
+            clearTimeout(timer);
             window.removeEventListener('resize', updatePosition);
-            window.removeEventListener('scroll', updatePosition);
         };
-    }, [updatePosition]);
+    }, [currentStep, updatePosition]);
 
     const handleNext = () => {
         if (currentStep < STEPS.length - 1) {
@@ -115,7 +123,6 @@ export const InterfaceTour = ({ onComplete }: { onComplete: () => void }) => {
 
     return (
         <div className="fixed inset-0 z-[100] overflow-hidden pointer-events-none">
-            {/* Dimmed Background Overlay using Box Shadow Punch-out */}
             <div
                 className="absolute border-4 border-primary transition-all duration-500 ease-in-out shadow-[0_0_0_9999px_rgba(10,10,11,0.85)] z-[101]"
                 style={{
@@ -126,7 +133,6 @@ export const InterfaceTour = ({ onComplete }: { onComplete: () => void }) => {
                 }}
             />
 
-            {/* Tooltip */}
             <div
                 ref={tooltipRef}
                 className="absolute pointer-events-auto transition-all duration-500 ease-in-out w-80 z-[102]"
@@ -140,7 +146,7 @@ export const InterfaceTour = ({ onComplete }: { onComplete: () => void }) => {
                         <div className="flex items-center gap-2">
                             <Terminal className="w-4 h-4 text-primary" strokeWidth={3} />
                             <span className="text-[10px] font-black tracking-[0.4em] text-primary uppercase">
-                                Шаг_{currentStep + 1}
+                                {language === 'ru' ? 'Шаг' : 'Step'}_{currentStep + 1}
                             </span>
                         </div>
                         <span className="text-[10px] font-mono text-muted-foreground">[{currentStep + 1}/{STEPS.length}]</span>
@@ -167,9 +173,9 @@ export const InterfaceTour = ({ onComplete }: { onComplete: () => void }) => {
                             className="bg-primary text-background px-6 py-2 font-display font-black uppercase text-xs tracking-widest flex items-center gap-2 hover:bg-white transition-all transform active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]"
                         >
                             {currentStep === STEPS.length - 1 ? (
-                                <>Начать <Check className="w-4 h-4" /></>
+                                <>{t.tour.finish} <Check className="w-4 h-4" /></>
                             ) : (
-                                <>Далее <ChevronRight className="w-4 h-4" /></>
+                                <>{t.tour.next} <ChevronRight className="w-4 h-4" /></>
                             )}
                         </button>
                     </div>

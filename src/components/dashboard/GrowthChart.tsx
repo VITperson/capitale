@@ -8,28 +8,39 @@ import {
     ResponsiveContainer
 } from 'recharts';
 import type { FinancialDataPoint } from '../../utils/calculations';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface GrowthChartProps {
     data: FinancialDataPoint[];
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
+    const { t } = useLanguage();
+
     if (active && payload && payload.length) {
         const total = payload[0].value + payload[1].value;
         return (
             <div className="bg-background border-2 border-primary p-6 shadow-[8px_8px_0px_0px_rgba(var(--primary),0.1)]">
-                <div className="text-2xl font-display font-black italic uppercase tracking-tighter mb-4 text-primary">Год {label}</div>
+                <div className="text-2xl font-display font-black italic uppercase tracking-tighter mb-4 text-primary">
+                    {t.chart.year} {label}
+                </div>
                 <div className="space-y-3">
                     <div className="flex justify-between gap-12 border-b border-border/50 pb-1">
-                        <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Депозиты:</span>
+                        <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                            {t.chart.invested}:
+                        </span>
                         <span className="text-sm font-mono font-bold text-white">${payload[0].value.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between gap-12 border-b border-border/50 pb-1">
-                        <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Проценты:</span>
+                        <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                            {t.chart.interest}:
+                        </span>
                         <span className="text-sm font-mono font-bold text-white">${payload[1].value.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between gap-12 pt-2">
-                        <span className="text-[10px] font-bold tracking-widest text-primary uppercase">Итого:</span>
+                        <span className="text-[10px] font-bold tracking-widest text-primary uppercase">
+                            {t.chart.total}:
+                        </span>
                         <span className="text-lg font-display font-black text-white">${total.toLocaleString()}</span>
                     </div>
                 </div>
@@ -40,27 +51,33 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export const GrowthChart = ({ data }: GrowthChartProps) => {
+    const { t } = useLanguage();
+
     return (
         <div className="border border-border p-10 h-[500px] flex flex-col bg-card/40">
             <div className="flex items-baseline justify-between mb-8">
                 <h3 className="text-2xl font-display font-black italic uppercase tracking-tighter">
-                    Матрица роста
+                    {t.chart.title}
                 </h3>
                 <div className="flex gap-6">
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-zinc-800 border border-border" />
-                        <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase italic">Взносы</span>
+                        <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase italic">
+                            {t.chart.invested}
+                        </span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-primary" />
-                        <span className="text-[10px] font-bold tracking-widest text-primary uppercase italic">Проценты</span>
+                        <span className="text-[10px] font-bold tracking-widest text-primary uppercase italic">
+                            {t.chart.interest}
+                        </span>
                     </div>
                 </div>
             </div>
 
             <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 30 }}>
                         <CartesianGrid strokeDasharray="0" vertical={false} stroke="var(--border)" strokeOpacity={0.5} />
                         <XAxis
                             dataKey="year"
@@ -68,6 +85,8 @@ export const GrowthChart = ({ data }: GrowthChartProps) => {
                             tickLine={false}
                             tick={{ fill: 'var(--muted-foreground)', fontSize: 10, fontWeight: 700 }}
                             dy={20}
+                            interval="preserveStartEnd"
+                            minTickGap={25}
                         />
                         <YAxis
                             axisLine={false}
