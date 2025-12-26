@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+:root {
+  --background: oklch(0.12 0.01 250);
+  --foreground: oklch(0.98 0.01 250);
+  --card: oklch(0.16 0.01 250);
+  --card-foreground: oklch(0.98 0.01 250);
+  --primary: oklch(0.72 0.18 145);
+  /* Intense Mint/Emerald */
+  --primary-foreground: oklch(0.12 0.01 250);
+  --secondary: oklch(0.22 0.02 250);
+  --secondary-foreground: oklch(0.98 0.01 250);
+  --muted: oklch(0.25 0.02 250);
+  --muted-foreground: oklch(0.7 0.02 250);
+  --accent: oklch(0.35 0.1 200);
+  --accent-foreground: oklch(0.98 0.01 250);
+  --destructive: oklch(0.6 0.2 25);
+  --border: oklch(0.25 0.02 250);
+  --input: oklch(0.2 0.02 250);
+  --ring: oklch(0.72 0.18 145);
+  --radius-sharp: 0.125rem;
+  --radius-asym: 2rem 0.5rem 2rem 0.5rem;
+}
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-display: 'Outfit', sans-serif;
+
+  --radius-container: 0px;
+  --radius-button: 2px;
+  --radius-card: 0px;
+  --radius-asym: var(--radius-asym);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border/40;
+  }
+
+  body {
+    @apply bg-background text-foreground selection:bg-primary/30;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display tracking-tight;
+  }
+}
+
+/* Custom UI Elements to avoid generic feel */
+.neo-card {
+  @apply bg-card border-l-4 border-l-primary p-6 transition-all duration-300 hover:bg-muted/50;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
+}
+
+.brutalist-input {
+  @apply bg-background border border-border px-4 py-2 focus:border-primary outline-none transition-colors;
+}
